@@ -6,8 +6,8 @@ editor: visual
 
 ```{r}
 #load rds
-value=readRDS("F:/PHD/task/value_df.rds")
-race=readRDS("F:/PHD/task/race_df.rds")
+value=readRDS("https://github.com/blwgithub/merging-task/task/value_df.rds")
+race=readRDS("https://github.com/blwgithub/merging-task/task/race_df.rds")
 ```
 
 ```{r}
