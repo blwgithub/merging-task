@@ -5,14 +5,79 @@ editor: visual
 ---
 
 ```{r}
-1 + 1
+#load rds
+value=readRDS("F:/PHD/task/value_df.rds")
+race=readRDS("F:/PHD/task/race_df.rds")
 ```
-
-You can add options to executable code like this
 
 ```{r}
-#| echo: false
-2 * 2
+#merge dataset
+library(dplyr)
+library(tidyr)
+mergedata <- left_join(value, race, by = "ParticipantID")
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+```{r}
+#create dummy for each race
+#extract each race that separated by comma
+racedummy=mergedata%>%
+  mutate(Race=strsplit(as.character(Race), ", ")) %>%
+  unnest(Race)
+race_categories <- unique(racedummy$Race)
+
+#create dummy varialbe for each race
+for (Race in race_categories) {
+  mergedata[[paste0(Race, "_dummy")]] <- ifelse(grepl(Race, mergedata$Race), 1, 0)
+}
+
+```
+
+```{r}
+#create color group with red yellow and blue
+#insert new color group column
+colorgroup<-mergedata %>%
+  mutate(color_group="red")
+
+colorgroup$color_group<-ifelse(colorgroup$Value>140,"blue",ifelse(colorgroup$Value>120,"yellow","red"))
+
+```
+
+```{r}
+#summary other race percentage
+#create new column and label it by its other race status
+other_smy <- colorgroup %>%
+  mutate(other_race = case_when(
+    Other_dummy == 1 & 
+      `Black or African American_dummy` == 0 & 
+      Asian_dummy == 0 & 
+      White_dummy == 0 & 
+      `American Indian or Alaskan Native_dummy` == 0 & 
+      `Native Hawaiian or Other Pacific Islander_dummy` == 0 ~ 0,
+    
+    Other_dummy == 1 & 
+      (`Black or African American_dummy` == 1 | 
+         Asian_dummy == 1 | 
+         White_dummy == 1 | 
+         `American Indian or Alaskan Native_dummy` == 1 | 
+         `Native Hawaiian or Other Pacific Islander_dummy` == 1) ~ 1,
+    
+    TRUE ~ 2
+  ))
+
+# remove data has no other race include
+other_smy <- other_smy %>%
+  filter(other_race != 2)
+
+# create summary table
+summary_data <- other_smy %>%
+  group_by(other_race, color_group) %>%
+  summarize(
+    n = n(),  
+    .groups = "drop")%>%
+  group_by(other_race)%>%
+  mutate(
+    n_percent =scales::percent( n / sum(n))
+  ) 
+
+print(summary_data)
+```
